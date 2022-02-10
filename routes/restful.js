@@ -20,6 +20,7 @@ const depTime6 = new Date(2022, 1, 7, 10, 40, 0);
 
 const arrTime7 = new Date(2022, 1, 7, 11, 00, 0);
 const depTime7 = new Date(2022, 1, 7, 11, 10, 30);
+const CAR_NUMBER = 7
 
 const parkTimeInfos = [
 	{id:1, arrTime:arrTime1, depTime:depTime1},
@@ -35,22 +36,28 @@ const parkTimeInfos = [
 // request param X, response O
 // response all data
 app.get("/api/park/datas", (req, res) => {
-	res.json({ok:true, parkTimeInfos:parkTimeInfos});
+	res.json({status:"OK", message:"OK", totalData:CAR_NUMBER, parkTimeInfos:parkTimeInfos});
 });
 
 // Query parameter, request param O, response O
 app.get("/api/park/datas/data", (req, res) => {
 	const carId = req.query.id
+	if (carId < 1 || carId > 7){
+		res.json({status:"ERROR-1004", message:"Invalid carID!", totalData:0, parkTimeInfos:[{}]});
+	} 
 	const parkTimeInfo = parkTimeInfos.filter(data => data.id == carId);
-	res.json({ok:false, parkTimeInfos:parkTimeInfo});
+	res.json({status:"OK", message:"OK", totalData:1, parkTimeInfos:parkTimeInfo});
 });
 
 // POST, request body, response O
 // same as above one
 app.post("/api/park/data", (req, res) => {
 	const carId = req.body.id
+	if (carId < 1 || carId > 7){
+		res.json({status:"ERROR-1004", message:"Invalid carID!", totalData:0, parkTimeInfos:[{}]});
+	} 
 	const parkTimeInfo = parkTimeInfos.filter(data => data.id == carId);
-	res.json({ok:true, parkTimeInfos:parkTimeInfo});
+	res.json({status:"OK", message:"OK", totalData:1, parkTimeInfos:parkTimeInfo});
 });
 
 
@@ -64,12 +71,13 @@ function isSameId(e){
 }
 
 app.post("/api/park/fee", (req, res) => {
-	// const carId = req.body.id;
 	tempId = req.body.id;
-	
-	var data = parkTimeInfos.find(isSameId);
-	var data_fee = Math.ceil((((data.depTime - data.arrTime) / 1000 / 60 / 10))) * 500; // 10분당 500원의 주차요금 계산
-	res.json({ok:true, id:carId, fee:data_fee});
+	if (tempId < 1 || tempId > 7){
+		res.json({status:"ERROR-1004", message:"Invalid carID!", totalData:0, parkFeeInfos:[{}]});
+	}
+	let data = parkTimeInfos.find(isSameId);
+	let data_fee = Math.ceil((((data.depTime - data.arrTime) / 1000 / 60 / 10))) * 500; // 10분당 500원의 주차요금 계산
+	res.json({status:"OK", message:"OK", totalData:1, parkFeeInfos:[{id:tempId, fee:data_fee}]});
 });
 
 module.exports = app;
