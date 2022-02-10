@@ -54,7 +54,7 @@ app.get("/api/park/datas/data", (req, res) => {
 app.post("/api/park/data", (req, res) => {
 	const carId = req.body.id
 	if (carId < 1 || carId > 7){
-		res.json({status:"ERROR-1004", message:"Invalid carID!", totalData:0, parkTimeInfos:[{}]});
+		res.json({status:"ERROR-1104", message:"Invalid carID!", totalData:0, parkTimeInfos:[{}]});
 	} 
 	const parkTimeInfo = parkTimeInfos.filter(data => data.id == carId);
 	res.json({status:"OK", message:"OK", totalData:1, parkTimeInfos:parkTimeInfo});
@@ -73,7 +73,7 @@ function isSameId(e){
 app.post("/api/park/fee", (req, res) => {
 	tempId = req.body.id;
 	if (tempId < 1 || tempId > 7){
-		res.json({status:"ERROR-1004", message:"Invalid carID!", totalData:0, parkFeeInfos:[{}]});
+		res.json({status:"ERROR-2004", message:"Invalid carID!", totalData:0, parkFeeInfos:[{}]});
 	}
 	let data = parkTimeInfos.find(isSameId);
 	let data_fee = Math.ceil((((data.depTime - data.arrTime) / 1000 / 60 / 10))) * 500; // 10분당 500원의 주차요금 계산
