@@ -22,6 +22,9 @@ const arrTime7 = new Date(2022, 1, 7, 11, 00, 0);
 const depTime7 = new Date(2022, 1, 7, 11, 10, 30);
 const CAR_NUMBER = 7
 
+const { MongoClient } = require('mongodb');
+const uri = "mongodb+srv://root:UVwESvX0iZSRLJ03@cluster0.uaoaw.mongodb.net/parkdb?retryWrites=true&w=majority";
+
 const parkTimeInfos = [
 	{id:1, arrTime:arrTime1, depTime:depTime1},
 	{id:2, arrTime:arrTime2, depTime:depTime2},
@@ -36,7 +39,15 @@ const parkTimeInfos = [
 // request param X, response O
 // response all data
 app.get("/api/park/datas", (req, res) => {
-	res.json({status:"OK", message:"OK", totalData:CAR_NUMBER, parkTimeInfos:parkTimeInfos});
+	MongoClient.connect(uri, function(err, db) {
+		if (err) throw err;
+		const dbo = db.db("parkdb");
+		dbo.collection("park").find({}, {projection:{_id:0}}).toArray(function(err, result) {
+		  	if (err) throw err;
+			res.json({status:"OK", message:"OK", totalData:CAR_NUMBER, parkTimeInfos:result});
+		  	db.close();
+		});
+	});
 });
 
 // Query parameter, request param O, response O
@@ -45,8 +56,16 @@ app.get("/api/park/datas/data", (req, res) => {
 	if (carId < 1 || carId > 7){
 		res.json({status:"ERROR-1004", message:"Invalid carID!", totalData:0, parkTimeInfos:[{}]});
 	} 
-	const parkTimeInfo = parkTimeInfos.filter(data => data.id == carId);
-	res.json({status:"OK", message:"OK", totalData:1, parkTimeInfos:parkTimeInfo});
+
+	MongoClient.connect(uri, function(err, db) {
+		if (err) throw err;
+		const dbo = db.db("parkdb");
+		dbo.collection("park").find({"id":carId}, {projection:{_id:0}}).toArray(function(err, result) {
+		  	if (err) throw err;
+			res.json({status:"OK", message:"OK", totalData:CAR_NUMBER, parkTimeInfos:result});
+		  	db.close();
+		});
+	});
 });
 
 // POST, request body, response O
@@ -56,14 +75,21 @@ app.post("/api/park/data", (req, res) => {
 	if (carId < 1 || carId > 7){
 		res.json({status:"ERROR-1104", message:"Invalid carID!", totalData:0, parkTimeInfos:[{}]});
 	} 
-	const parkTimeInfo = parkTimeInfos.filter(data => data.id == carId);
-	res.json({status:"OK", message:"OK", totalData:1, parkTimeInfos:parkTimeInfo});
+
+	MongoClient.connect(uri, function(err, db) {
+		if (err) throw err;
+		const dbo = db.db("parkdb");
+		dbo.collection("park").find({"id":carId}, {projection:{_id:0}}).toArray(function(err, result) {
+		  	if (err) throw err;
+			res.json({status:"OK", message:"OK", totalData:CAR_NUMBER, parkTimeInfos:result});
+		  	db.close();
+		});
+	});	
 });
 
 
 var tempId = 0; // isSameId()에서 find() 내의 변수가 증가하는 현상 해결을 못해서 쓰는 임시 변수
 
-// for find()
 function isSameId(e){
 	if(e.id == tempId){
 		return true;
@@ -75,6 +101,18 @@ app.post("/api/park/fee", (req, res) => {
 	if (tempId < 1 || tempId > 7){
 		res.json({status:"ERROR-2004", message:"Invalid carID!", totalData:0, parkFeeInfos:[{}]});
 	}
+
+	// MongoClient.connect(uri, function(err, db) {
+	// 	if (err) throw err;
+	// 	const dbo = db.db("parkdb");
+	// 	dbo.collection("park").find({"id":carId}, {projection:{_id:0}}).toArray(function(err, result) {
+	// 	  	if (err) throw err;
+	// 		res.json({status:"OK", message:"OK", totalData:CAR_NUMBER, parkTimeInfos:result});
+	// 		console.log(result)
+	// 	  	db.close();
+	// 	});
+	// });	
+
 	let data = parkTimeInfos.find(isSameId);
 	let data_fee = Math.ceil((((data.depTime - data.arrTime) / 1000 / 60 / 10))) * 500; // 10분당 500원의 주차요금 계산
 	res.json({status:"OK", message:"OK", totalData:1, parkFeeInfos:[{id:tempId, fee:data_fee}]});
