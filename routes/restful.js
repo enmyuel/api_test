@@ -3,54 +3,43 @@ const bodyParser = require('body-parser');
 
 const app = express();
 
-const arrTime1 = new Date(2022, 0, 29, 7, 20, 11); // 2022년 1월 29일 7시 20분 11초
-const arrTime2 = new Date(2022, 0, 30, 8, 30, 4); // 2022년 1월 30일 8시 30분 4초
-const arrTime3 = new Date(2022, 1, 1, 12, 12, 45); // 2022년 2월 1일 12시 12분 45초
-const arrTime4 = new Date(2022, 1, 6, 13, 33, 29); // 2022년 2월 6일 13시 33분 29초
-const arrTime5 = new Date(2022, 1, 7, 11, 20, 55); // 2022년 2월 7일 11시 20분 55초
-
-const depTime1 = new Date(2022, 0, 29, 18, 3, 4); // 2022년 1월 29일 18시 03분 4초
-const depTime2 = new Date(2022, 0, 30, 13, 30, 9); // 2022년 1월 30일 13시 30분 9초
-const depTime3 = new Date(2022, 1, 1, 13, 0, 1); // 2022년 2월 1일 13시 00분 1초
-const depTime4 = new Date(2022, 1, 6, 18, 11, 53); // 2022년 2월 6일 18시 11분 53초
-const depTime5 = new Date(2022, 1, 7, 12, 28, 7); // 2022년 2월 7일 12시 28분 7초
-
-const arrTime6 = new Date(2022, 1, 7, 10, 0, 0);
-const depTime6 = new Date(2022, 1, 7, 10, 40, 0);
-
-const arrTime7 = new Date(2022, 1, 7, 11, 00, 0);
-const depTime7 = new Date(2022, 1, 7, 11, 10, 30);
-const CAR_NUMBER = 7
+let CAR_NUMBER = -999
 
 const { MongoClient } = require('mongodb');
 const uri = "mongodb+srv://root:UVwESvX0iZSRLJ03@cluster0.uaoaw.mongodb.net/parkdb?retryWrites=true&w=majority";
 
-const parkTimeInfos = [
-	{id:1, arrTime:arrTime1, depTime:depTime1},
-	{id:2, arrTime:arrTime2, depTime:depTime2},
-	{id:3, arrTime:arrTime3, depTime:depTime3},
-	{id:4, arrTime:arrTime4, depTime:depTime4},
-	{id:5, arrTime:arrTime5, depTime:depTime5},
-	
-	{id:6, arrTime:arrTime6, depTime:depTime6},
-	{id:7, arrTime:arrTime7, depTime:depTime7}
-];
+async function getNumberOfCar(){
+	MongoClient.connect(uri, function(err, db) {
+	if (err) throw err;
+	const dbo = db.db("parkdb");
 
-// request param X, response O
-// response all data
+	// 전체 차량 대수 확인
+	dbo.collection("park").count({}, function(err, numOfDatas){
+		CAR_NUMBER = numOfDatas;
+		if(err) throw err;
+			db.close();
+		});
+	});
+	await Promise.resolve("ok");
+}
+getNumberOfCar().then();
+
+// 주차장에 입출차한 모든 차량의 차량번호와 입/출차 시간을 전달
 app.get("/api/park/datas", (req, res) => {
 	MongoClient.connect(uri, function(err, db) {
 		if (err) throw err;
 		const dbo = db.db("parkdb");
+
 		dbo.collection("park").find({}, {projection:{_id:0}}).toArray(function(err, result) {
 		  	if (err) throw err;
+			getNumberOfCar();
 			res.json({status:"OK", message:"OK", totalData:CAR_NUMBER, parkTimeInfos:result});
-		  	db.close();
+			db.close();
 		});
 	});
 });
 
-// Query parameter, request param O, response O
+// 특정 차량의 차량번호와 입차 시간과 출차 시간을 전달; GET 방식
 app.get("/api/park/datas/data", (req, res) => {
 	const carId = req.query.id
 	if (carId < 1 || carId > 7){
@@ -62,14 +51,14 @@ app.get("/api/park/datas/data", (req, res) => {
 		const dbo = db.db("parkdb");
 		dbo.collection("park").find({"id":carId}, {projection:{_id:0}}).toArray(function(err, result) {
 		  	if (err) throw err;
+			getNumberOfCar();
 			res.json({status:"OK", message:"OK", totalData:CAR_NUMBER, parkTimeInfos:result});
 		  	db.close();
 		});
 	});
 });
 
-// POST, request body, response O
-// same as above one
+// 특정 차량의 차량번호와 입차 시간과 출차 시간을 전달; POST 방식
 app.post("/api/park/data", (req, res) => {
 	const carId = req.body.id
 	if (carId < 1 || carId > 7){
@@ -81,6 +70,7 @@ app.post("/api/park/data", (req, res) => {
 		const dbo = db.db("parkdb");
 		dbo.collection("park").find({"id":carId}, {projection:{_id:0}}).toArray(function(err, result) {
 		  	if (err) throw err;
+			getNumberOfCar();
 			res.json({status:"OK", message:"OK", totalData:CAR_NUMBER, parkTimeInfos:result});
 		  	db.close();
 		});
@@ -88,34 +78,24 @@ app.post("/api/park/data", (req, res) => {
 });
 
 
-var tempId = 0; // isSameId()에서 find() 내의 변수가 증가하는 현상 해결을 못해서 쓰는 임시 변수
-
-function isSameId(e){
-	if(e.id == tempId){
-		return true;
-	}
-}
-
+// 출차하는 차량의 주차요금 정산
+// 주차요금은 10분당 500원
 app.post("/api/park/fee", (req, res) => {
-	tempId = req.body.id;
-	if (tempId < 1 || tempId > 7){
+	carId = req.body.id;
+	if (carId < 1 || carId > 7){
 		res.json({status:"ERROR-2004", message:"Invalid carID!", totalData:0, parkFeeInfos:[{}]});
 	}
 
-	// MongoClient.connect(uri, function(err, db) {
-	// 	if (err) throw err;
-	// 	const dbo = db.db("parkdb");
-	// 	dbo.collection("park").find({"id":carId}, {projection:{_id:0}}).toArray(function(err, result) {
-	// 	  	if (err) throw err;
-	// 		res.json({status:"OK", message:"OK", totalData:CAR_NUMBER, parkTimeInfos:result});
-	// 		console.log(result)
-	// 	  	db.close();
-	// 	});
-	// });	
-
-	let data = parkTimeInfos.find(isSameId);
-	let data_fee = Math.ceil((((data.depTime - data.arrTime) / 1000 / 60 / 10))) * 500; // 10분당 500원의 주차요금 계산
-	res.json({status:"OK", message:"OK", totalData:1, parkFeeInfos:[{id:tempId, fee:data_fee}]});
+	MongoClient.connect(uri, function(err, db) {
+		if (err) throw err;
+		const dbo = db.db("parkdb");
+		dbo.collection("park").find({"id":carId}, {projection:{_id:0}}).toArray(function(err, result) {
+		  	if (err) throw err;
+			let data_fee = Math.ceil((((result[0]['depTime'] - result[0]['arrTime']) / 1000 / 60 / 10))) * 500; 
+			res.json({status:"OK", message:"OK", totalData:1, parkFeeInfos:[{id:carId, fee:data_fee}]});
+		  	db.close();
+		});
+	});	
 });
 
 module.exports = app;
