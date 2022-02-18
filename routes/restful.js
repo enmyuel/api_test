@@ -6,7 +6,9 @@ const app = express();
 let CAR_NUMBER = -999
 
 const { MongoClient } = require('mongodb');
-const uri = "###";
+const uri = "#";
+
+const depTime7 = new Date(2022, 1, 7, 11, 10, 30)
 
 async function getNumberOfCar(){
 	MongoClient.connect(uri, function(err, db) {
@@ -82,9 +84,9 @@ app.post("/api/park/data", (req, res) => {
 // 주차요금은 10분당 500원
 app.post("/api/park/fee", (req, res) => {
 	carId = req.body.id;
-	if (carId < 1 || carId > 7){
-		res.json({status:"ERROR-2004", message:"Invalid carID!", totalData:0, parkFeeInfos:[{}]});
-	}
+	// if (carId < 1 || carId > 7){
+	// 	res.json({status:"ERROR-2004", message:"Invalid carID!", totalData:0, parkFeeInfos:[{}]});
+	// }
 
 	MongoClient.connect(uri, function(err, db) {
 		if (err) throw err;
