@@ -6,7 +6,7 @@ const app = express();
 let CAR_NUMBER = -999
 
 const { MongoClient } = require('mongodb');
-const uri = "mongodb+srv://root:UVwESvX0iZSRLJ03@cluster0.uaoaw.mongodb.net/parkdb?retryWrites=true&w=majority";
+const uri = "###";
 
 async function getNumberOfCar(){
 	MongoClient.connect(uri, function(err, db) {
